@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  firstName String    @db.VarChar(255)
+  lastName  String    @db.VarChar(255)
+  email     String    @unique @db.VarChar(255)
+  password  String    @db.VarChar(255)
+  status    Status    @default(Active)
+  role      Role      @default(USER)
+  createdAt DateTime  @default(now())
+  employee  Employee?
+
+  @@index([email, id])
+}
+
+model Employee {
+  id              Int                    @id @default(autoincrement())
+  user            User                   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId          String                 @unique
+  salary          Int
+  department      Department?            @relation(fields: [departmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  departmentId    Int?
+  contactDetail   ContactDetail          @relation(fields: [contactDetailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  contactDetailId Int
+  jobPosition     JobPosition            @relation(fields: [jobPositionId], references: [id])
+  jobPositionId   Int
+  notifications   EmployeeNotification[]
+  createdAt       DateTime               @default(now())
+}
+
+model Department {
+  id           Int           @id @default(autoincrement())
+  name         String        @db.VarChar(255)
+  employees    Employee[]
+  jobPositions JobPosition[] @relation("DepartmentJobPositions")
+  createdAt    DateTime      @default(now())
+}
+
+model ContactDetail {
+  id        Int        @id @default(autoincrement())
+  phone     String     @db.VarChar(255)
+  address   String     @db.VarChar(255)
+  employees Employee[]
+  createdAt DateTime   @default(now())
+}
+
+model Notification {
+  id        Int                    @id @default(autoincrement())
+  message   String                 @db.VarChar(255)
+  sender    String                 @db.VarChar(255)
+  receiver  String                 @db.VarChar(255)
+  type      NotificationType
+  employees EmployeeNotification[]
+  createdAt DateTime               @default(now())
+}
+
+model EmployeeNotification {
+  employeeId     Int
+  notificationId Int
+  employee       Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@id([employeeId, notificationId])
+}
+
+model JobPosition {
+  id          Int          @id @default(autoincrement())
+  name        String       @db.VarChar(255)
+  employees   Employee[]
+  departments Department[] @relation("DepartmentJobPositions")
+  createdAt   DateTime     @default(now())
+}
+
+enum Role {
+  USER
+  MANAGER
+  ADMIN
+}
+
+enum Status {
+  Active
+  Inactive
+  Deleted
+}
+
+enum NotificationType {
+  user
+  department
+}
